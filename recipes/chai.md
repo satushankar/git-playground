@@ -15,5 +15,5 @@ The only recipe that matters.
 
 1. Boil the water with the ginger and cardamom.
 2. Add tea leaves. Boil for two minutes.
-3. Add milk. Bring back to a boil.
+3. Add milk. Bring back to a boil, then let it rise three times.
 4. Add sugar. Strain. Serve.
