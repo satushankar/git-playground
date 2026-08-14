@@ -7,7 +7,7 @@ The only recipe that matters.
 - Water, 1 cup
 - Milk, 1 cup
 - Tea leaves, 2 tsp
-- Sugar, to taste
+- Sugar, 2 tsp, or to taste
 - Ginger, a small piece
 - Cardamom, 2 pods
 
