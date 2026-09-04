@@ -1,0 +1,90 @@
+name: greet
+
+# Greets a practice pull request and merges it.
+#
+# This uses pull_request_target so it can comment on pull requests from forks.
+# It is safe here because it NEVER checks out or runs anything from the pull
+# request - it only reads the file list through the API. Do not add a checkout
+# of the pull request to this workflow.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: greet-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  greet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.0.1
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const author = pr.user.login;
+            const expected = `hello/${author}.md`;
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner, repo: context.repo.repo, pull_number: pr.number,
+            });
+
+            const clean = (s) => String(s).replace(/[\x00-\x1f\x7f]/g, ' ').slice(0, 120);
+            const names = files.map(f => f.filename);
+            const ok = names.length === 1 && names[0] === expected;
+
+            let body;
+            if (ok) {
+              body = [
+                `Hello @${author}.`,
+                '',
+                'That is a real pull request. You made a branch, committed a change,',
+                'pushed it, and asked someone to accept it into their project. That is',
+                'exactly what an open source contribution is, and you just did one.',
+                '',
+                'Merging it now. Go and look at the `hello/` folder in a minute and you',
+                'will find yourself in there.',
+                '',
+                'Tonight you do this once more, for real.',
+              ].join('\n');
+            } else if (names.length === 0) {
+              body = 'This pull request does not change any files. Add your file at `' + expected + '` and push again.';
+            } else if (names.length > 1) {
+              body = [
+                `This changes ${names.length} files: ` + names.slice(0, 8).map(n => '`' + clean(n) + '`').join(', '),
+                '',
+                'For practice, change exactly one: `' + expected + '`',
+                '',
+                'Not a problem - fix it and push to the same branch. This pull request',
+                'checks itself again. You do not need to open a new one.',
+              ].join('\n');
+            } else {
+              body = [
+                'Close. Your file is `' + clean(names[0]) + '`, but it needs to be `' + expected + '`',
+                '',
+                'The name has to match your GitHub username exactly, hyphens and all.',
+                'Rename it, commit, and push to the same branch.',
+              ].join('\n');
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner, repo: context.repo.repo,
+              issue_number: pr.number, body: body,
+            });
+
+            if (!ok) return;
+
+            try {
+              await github.rest.pulls.merge({
+                owner: context.repo.owner, repo: context.repo.repo,
+                pull_number: pr.number, sha: pr.head.sha, merge_method: 'squash',
+              });
+            } catch (err) {
+              core.warning(`Could not merge #${pr.number}: ${err.message}`);
+            }
